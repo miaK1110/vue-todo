@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <title>TODO LIST</title>
+  <link rel="stylesheet" href="dist/css/app.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+    integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+
+<body>
+
+  <!-- Header-area -->
+  <header class="l-header">
+    <div class="p-header">
+      <h1 class="p-header__title">Vue TODO</h1>
+      <span class="p-header__emoji">&#128020;</span>
+    </div>
+  </header>
+
+  <!-- Add-todo-area -->
+  <main class="l-main" id="app">
+    <form class="p-addTodo" @submit.prevent>
+      <div class="p-addTodo__inputArea">
+        <input type="text" class="p-addTodo__inputText" value="" placeholder="...">
+        <span class="c-error" v-show="error">You need to put something</span>
+      </div>
+      <button class="c-btn p-addTodo__btn" @click="addTodo">Add Todo</button>
+    </form>
+
+    <!-- Search-area -->
+    <div class="p-searchBox">
+      <i class="fa fa-search p-searchBox__icon" aria-hidden="true"></i>
+      <input type="text" class="p-searchBox__inputText" value="" placeholder="Search todos">
+    </div>
+
+    <!-- Todo-list -->
+    <ul class="p-todoList">
+      <li class="p-listItem" v-for="todo in todos" :key="todo.id">
+        <i class="c-icon p-listItem__iconTick far fa-check-circle" aria-hidden="true"
+          @click="toggleIsCompleteState"></i>
+        <span class="p-listItem__text" v-show="!editMode" @click="switchEditMode">{{todo.text}}</span>
+        <input type="text" class="p-listItem__editText" v-show="editMode">
+        <i class="c-icon p-listItem__iconBin fa fa-trash icon-trash" aria-hidden="true" @click="deleteTodo"></i>
+      </li>
+    </ul>
+  </main>
+
+
+  <script src="dist/js/bundle.js"></script>
+</body>
+
+</html>
