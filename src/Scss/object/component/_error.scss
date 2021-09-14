@@ -1,0 +1,5 @@
+@use './object/utility/import' as i;
+
+.c-error {
+  color: i.$errorColor;
+}

@@ -3,8 +3,8 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>TODO LIST</title>
-  <link rel="stylesheet" href="dist/css/app.css">
+  <title>vue-todo</title>
+  <link rel="stylesheet" href="dist/css/style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
     integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ=="
     crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -24,7 +24,7 @@
   <main class="l-main" id="app">
     <form class="p-addTodo" @submit.prevent>
       <div class="p-addTodo__inputArea">
-        <input type="text" class="p-addTodo__inputText" value="" placeholder="...">
+        <input type="text" class="p-addTodo__inputText" value="" placeholder="..." v-model="newTodoText">
         <span class="c-error" v-show="error">You need to put something</span>
       </div>
       <button class="c-btn p-addTodo__btn" @click="addTodo">Add Todo</button>
@@ -33,17 +33,19 @@
     <!-- Search-area -->
     <div class="p-searchBox">
       <i class="fa fa-search p-searchBox__icon" aria-hidden="true"></i>
-      <input type="text" class="p-searchBox__inputText" value="" placeholder="Search todos">
+      <input type="text" class="p-searchBox__inputText" value="" placeholder="Search todos" v-model="searchWord">
     </div>
 
     <!-- Todo-list -->
     <ul class="p-todoList">
-      <li class="p-listItem" v-for="todo in todos" :key="todo.id">
-        <i class="c-icon p-listItem__iconTick far fa-check-circle" aria-hidden="true"
-          @click="toggleIsCompleteState"></i>
-        <span class="p-listItem__text" v-show="!editMode" @click="switchEditMode">{{todo.text}}</span>
-        <input type="text" class="p-listItem__editText" v-show="editMode">
-        <i class="c-icon p-listItem__iconBin fa fa-trash icon-trash" aria-hidden="true" @click="deleteTodo"></i>
+      <li v-for="(todo, index) in filteredTodos" :key="todo.id"
+        :class="(todo.isComplete) ? 'p-listItem--done' : 'p-listItem'">
+        <i :class="['c-icon', todo.isComplete ? 'p-listItem__iconTick fas fa-check-circle' : 'p-listItem__iconTick far fa-check-circle']"
+          aria-hidden="true" @click="toggleTodoToDone(todo)"></i>
+        <span class="p-listItem__text" v-show="!todo.editMode" @click="switchEditMode(todo, index)">{{todo.text}}</span>
+        <input type="text" ref="inputEdit" class="p-listItem__editText" v-show="todo.editMode" v-model="todo.editText"
+          @focus="selectInputEdit(index)" @blur="removeFocus(todo)" @keyup.enter="keyupCloseEditMode(todo,index)">
+        <i class="c-icon p-listItem__iconBin fa fa-trash icon-trash" aria-hidden="true" @click="deleteTodo(index)"></i>
       </li>
     </ul>
   </main>

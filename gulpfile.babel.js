@@ -1,64 +1,104 @@
-import gulp from 'gulp';
+import { src, dest, watch, series, parallel } from 'gulp';
+import autoprefixer from 'autoprefixer';
+import cssnano from 'cssnano';
+import concat from 'gulp-concat';
+import postcss from 'gulp-postcss';
+// import replace from 'gulp-replace';
+import dartSass from 'sass';
+import gulpSass from 'gulp-sass';
+import fibers from 'fibers';
+import sourcemaps from 'gulp-sourcemaps';
+import uglify from 'gulp-uglify';
 import webpackConfig from './webpack.config.js';
 import webpack from 'webpack-stream';
 import browserSync from 'browser-sync';
 import notify from 'gulp-notify';
 import plumber from 'gulp-plumber';
-import eslint from 'gulp-eslint';
+import { eslint } from 'eslint';
 
-// npmで出るエラー、警告集
-// https://qiita.com/M-ISO/items/d693ac892549fc95c14c
-// chromeのreact-dev-toolをインストールしておくといい
-// https://chrome.google.com/webstore/detail/react-developer-tools/fmkadmapgofadopljbjfkapdkoienihi/related
+const sass = gulpSass(dartSass);
 
-// gulpタスクの作成
-gulp.task('build', function(){
-  gulp.src('src/js/app.js')
-    .pipe(plumber({
-      errorHandler: notify.onError("Error: <%= error.message %>")
-    }))
+const files = {
+  scssPath: 'src/Scss/**/*.scss', // any file with .scss
+  jsPath: 'src/Js/**/*.js', // any file with .js
+  jsDestPath: 'dist/js/',
+  scssDestpath: 'dist/css/',
+};
+
+function scssTask() {
+  return src(files.scssPath)
+    .pipe(sourcemaps.init())
+    .pipe(sass({ fiber: fibers }))
+    .pipe(
+      plumber({
+        errorHandler: notify.onError({
+          title: 'Error...',
+          message: '<%= error.message %>',
+        }),
+      })
+    )
+    .pipe(sass({ outputStyle: 'compressed', errLogToConsole: false }))
+    .pipe(postcss([autoprefixer(), cssnano()]))
+    .pipe(sourcemaps.write('.'))
+    .pipe(dest(files.scssDestpath));
+}
+
+function jsTask() {
+  return src(files.jsPath)
+    .pipe(
+      plumber({
+        errorHandler: notify.onError({
+          title: 'Error...',
+          message: '<%= error.message %>',
+        }),
+      })
+    )
+    .pipe(concat('all.js'))
+    .pipe(uglify())
     .pipe(webpack(webpackConfig))
-    .pipe(gulp.dest('dist/js/'));
-});
-gulp.task('browser-sync', function() {
-  browserSync.init({
-    server: {
-      baseDir: "./", // 対象ディレクトリ
-      index: "index.html" //indexファイル名
-    }
-  });
-});
-gulp.task('bs-reload', function () {
-  browserSync.reload();
-});
-gulp.task('eslint', function() {
-  return gulp.src(['src/**/*.js']) // lint のチェック先を指定
-    .pipe(plumber({
-      // エラーをハンドル
-      errorHandler: function(error) {
-        const taskName = 'eslint';
-        const title = '[task]' + taskName + ' ' + error.plugin;
-        const errorMsg = 'error: ' + error.message;
-        // ターミナルにエラーを出力
-        console.error(title + '\n' + errorMsg);
-        // エラーを通知
-        notify.onError({
-          title: title,
-          message: errorMsg,
-          time: 3000
-        });
-      }
-    }))
-    .pipe(eslint({ useEslintrc: true })) // .eslintrc を参照
+    .pipe(dest(files.jsDestPath))
+    .pipe(browserSync.stream());
+}
+
+function jsEslint() {
+  src(files.jsPath)
+    .pipe(
+      plumber({
+        errorHandler: function (error) {
+          const taskName = 'eslint';
+          const title = '[task]' + taskName + ' ' + error.plugin;
+          const errorMsg = 'error: ' + error.message;
+          console.error(title + '\n' + errorMsg);
+          notify.onError({
+            title: title,
+            message: errorMsg,
+            time: 3000,
+          });
+        },
+      })
+    )
+    .pipe(eslint({ useEslintrc: true }))
     .pipe(eslint.format())
     .pipe(eslint.failOnError())
     .pipe(plumber.stop());
-});
+  done();
+}
 
-// Gulpを使ったファイルの監視
-gulp.task('default', ['eslint', 'build', 'browser-sync'], function(){
-  gulp.watch('./src/**/*.js', ['build']);
-  gulp.watch("./*.html", ['bs-reload']);
-  gulp.watch("./dist/**/*.+(js|css)", ['bs-reload']);
-  gulp.watch("./src/**/*.js", ['eslint']);
-});
+function watchTask() {
+  browserSync.init({
+    server: {
+      baseDir: './',
+      index: 'index.html',
+    },
+  });
+
+  watch('./*.html').on('change', browserSync.reload);
+  watch('./dist/*/*.+(js|css)').on('change', browserSync.reload);
+  watch('./dist/*/*/*.+(js|css)').on('change', browserSync.reload);
+
+  watch(files.jsPath, jsTask);
+  watch(files.jsPath, jsEslint);
+  watch(files.scssPath, scssTask);
+}
+
+exports.default = series(jsTask, watchTask, scssTask);
